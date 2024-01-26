@@ -5,8 +5,9 @@ import { useState, useEffect } from "react";
 
 export default function IDE() {
   const [codeText, setCodeText] = useState("");
-  const [responseMessage, setResponseMessage] = useState("");
-  const [project, setProject] = useState(""); // State variable for the response message
+  const [URL, setURL] = useState("");
+  const [project, setProject] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Function to call the create project API
@@ -21,7 +22,7 @@ export default function IDE() {
         }
 
         const responseData = await response.json();
-        setProject(responseData["id"]); // Update the state variable with the response data
+        setProject(responseData); // Update the state variable with the response data
         // Optionally update the state or do something with the response
       } catch (error) {
         console.error("Failed to create project:", error);
@@ -34,10 +35,10 @@ export default function IDE() {
   const handleEditorChange = (value, event) => {
     setCodeText(value);
   };
-
+  const project_id = project["id"]; // Get the project id from the state variable
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setResponseMessage(""); // Clear previous response message
+    setURL(""); // Clear previous response message
 
     try {
       const response = await fetch("/api/createdeployment", {
@@ -45,7 +46,7 @@ export default function IDE() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ code: codeText, project: project }),
+        body: JSON.stringify({ code: codeText, project: project_id }),
       });
 
       if (!response.ok) {
@@ -53,10 +54,19 @@ export default function IDE() {
       }
 
       const responseData = await response.json(); // Assuming the response is in JSON format
-      setResponseMessage(responseData.message); // Update the response message state
+      console.log(responseData);
+      setURL(`https://${project.name}-${responseData.id}.deno.dev`); // Update the response message state
     } catch (error) {
-      setResponseMessage(`Failed to deploy code: ${error}`);
+      setURL(`Failed to deploy code: ${error}`);
     }
+  };
+
+  const handleLoad = () => {
+    setIsLoading(false); // Set loading to false when iframe loads successfully
+  };
+
+  const handleError = () => {
+    setIsLoading(true); // Keep loading true or set an error state if the iframe fails to load
   };
 
   return (
@@ -86,12 +96,20 @@ export default function IDE() {
             </div>
           </div>
         </form>
-        {/* Tailwind element to show the response message */}
-        {responseMessage && (
-          <div className="mt-4 p-4 bg-blue-100 border border-blue-500 text-blue-700 rounded">
-            <p>Response: {responseMessage}</p>
-          </div>
-        )}
+        {/* Conditional rendering for iframe or loading message */}
+        <div className="mt-4">
+          {isLoading && <p className="text-center">Request sent...</p>}
+          <iframe
+            src={URL}
+            title="Deployed Project"
+            width="100%"
+            height="300px"
+            frameBorder="0"
+            onLoad={handleLoad}
+            onError={handleError}
+            style={{ display: isLoading ? "none" : "block" }} // Hide iframe while loading
+          ></iframe>
+        </div>
       </div>
     </div>
   );

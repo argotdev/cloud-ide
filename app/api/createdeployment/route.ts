@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
   });
 
   const deno_data = await res.json();
+  console.log("Deno deployment created:", deno_data);
 
   return Response.json(deno_data);
 }
